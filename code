@@ -1,0 +1,144 @@
+
+public static void main() { 
+    int eX = 0, Oh = 0, doing, aBit, best, chose, both, score; 
+    boolean Xwon = false, Owon = false, logit = false; 
+    String aLine = ""; 
+    while (true) { // do one play from each player.. 
+        both = eX|Oh; 
+        best = 0; 
+        chose = 0;
+
+        /// 1. Display the board.. 
+        System.out.println(""); // blank line for clarity 
+        for (doing=1; doing<=9; doing++) { 
+            aBit = 1<<doing; 
+            if (doing%3 == 1) aLine = " "; // only #1,4,7 (start of line) 
+              else aLine = aLine + " | "; // each: space+digit+space 
+            if ((eX&aBit) != 0) aLine = aLine + "X"; 
+            else if ((Oh&aBit) != 0) aLine = aLine + "O"; 
+              else aLine = aLine + doing; 
+            if (doing%3 > 0) continue; // not yet at the end of this row 
+            System.out.println(aLine); 
+            if (doing<9) System.out.println("---+---+---"); 
+        } // end of board display for-loop
+
+        /// 2. Is game over? 
+        if (((Oh&0xE) == 0xE) || ((Oh&0x70) == 0x70) 
+            || ((Oh&0x380) == 0x380) || ((Oh&0x92) == 0x92) 
+            || ((Oh&0x124) == 0x124) || ((Oh&0x248) == 0x248) 
+            || ((Oh&0x222) == 0x222) || ((Oh&0xA8) == 0xA8)) Owon = true; 
+        if (Xwon || Owon) break; 
+        if (both == 0x3FE) break; 
+        System.out.println(""); // blank line for clarity
+
+        /// 3. Accept X play 
+        System.out.println("Your play: "); 
+        while (true) { // get input.. 
+            try {doing = System.in.read()-48;} catch (Exception e) {doing = 0;} 
+            if (doing<0) continue; 
+            if (doing <= 9) { // reasonable num, taken? 
+                aBit = 1<<doing; 
+                if ((both&aBit) == 0) break; 
+                System.out.print("Taken! "); 
+            } // end of reasonable number 
+            System.out.println("Try again"); 
+        } // end of get input while 
+        aBit = 1<<doing; 
+        eX = eX|aBit; 
+        both = eX|Oh; 
+        if (((eX&0xE) == 0xE) || ((eX&0x70) == 0x70) 
+            || ((eX&0x380) == 0x380) || ((eX&0x92) == 0x92) 
+            || ((eX&0x124) == 0x124) || ((eX&0x248) == 0x248) 
+            || ((eX&0x222) == 0x222) || ((eX&0xA8) == 0xA8)) Xwon = true; 
+        if (Xwon) continue; // display final board then exit 
+        if (both == 0x3FE) continue;
+
+        /// 4. Calculate O play 
+        for (doing=1; doing<=9; doing++) { 
+            aBit = 1<<doing; 
+            if ((both&aBit) != 0) continue; 
+            score = Oh|aBit; // try for a win.. 
+            if ((score&0xE) != 0xE) if ((score&0x70) != 0x70) 
+              if ((score&0x380) != 0x380) if ((score&0x92) != 0x92) 
+                if ((score&0x124) != 0x124) if ((score&0x248) != 0x248) 
+                  if ((score&0x222) != 0x222) if ((score&0xA8) != 0xA8) 
+                    score = 0; // not winner 
+            if (score != 0) { // yay! 
+                if (logit) System.out.println("win "+doing+" ="+score); 
+                best = score; 
+                chose = doing; 
+                break;} 
+            score = eX|aBit; // try to prevent a lose.. 
+            if ((score&0xE) != 0xE) if ((score&0x70) != 0x70) 
+              if ((score&0x380) != 0x380) if ((score&0x92) != 0x92) 
+                if ((score&0x124) != 0x124) if ((score&0x248) != 0x248) 
+                  if ((score&0x222) != 0x222) if ((score&0xA8) != 0xA8) 
+                    score = 0; // not loser 
+            if (score != 0) { // oops, block this one.. 
+                if (logit) System.out.println("block "+doing+" ="+score); 
+                best = score; 
+                chose = doing; 
+                break;} 
+            score = 0; 
+            while (true) { // eliminate plays that can't win or lose.. 
+                if (eX==0) break; // nothing played, so nothing is blocked 
+                if (Oh==0) break; 
+                score = both|aBit;   // break if could still win/lose.. 
+                if ((aBit&0xE) !=0) if ((score&0xE) != 0xE) break; 
+                if ((aBit&0x70) !=0) if ((score&0x70) != 0x70) break; 
+                if ((aBit&0x380) !=0) if ((score&0x380) != 0x380) break; 
+                if ((aBit&0x92) !=0) if ((score&0x92) != 0x92) break; 
+                if ((aBit&0x124) !=0) if ((score&0x124) != 0x124) break; 
+                if ((aBit&0x248) !=0) if ((score&0x248) != 0x248) break; 
+                if ((aBit&0x222) !=0) if ((score&0x222) != 0x222) break; 
+                if ((aBit&0xA8) !=0) if ((score&0xA8) != 0xA8) break; 
+                score = -1; // this square is blocked every direction 
+                break;} 
+            if (logit) System.out.println("non "+doing+" ="+score); 
+            if (score<0) { // nothing worth doing here, but.. 
+                if (best==0) { 
+                    chose = doing; // use this if nothing better.. 
+                    best++;} 
+                continue;} 
+            score = 0; // block/build on existing row/column.. 
+            if ((aBit&0xE) !=0) {      // prefer to build on mine.. 
+                if ((eX&0xE) !=0) {if ((Oh&0xE) ==0) score = score+2;} 
+                else if ((Oh&0xE) !=0) score++;} 
+            if ((aBit&0x70) !=0) { 
+                if ((eX&0x70) !=0) {if ((Oh&0x70) ==0) score = score+2;} 
+                else if ((Oh&0x70) !=0) score++;} 
+            if ((aBit&0x380) !=0) { 
+                if ((eX&0x380) !=0) {if ((Oh&0x380) ==0) score = score+2;} 
+                else if ((Oh&0x380) !=0) score++;} 
+            if ((aBit&0x92) !=0) { 
+                if ((eX&0x92) !=0) {if ((Oh&0x92) ==0) score = score+2;} 
+                else if ((Oh&0x92) !=0) score++;} 
+            if ((aBit&0x124) !=0) { 
+                if ((eX&0x124) !=0) {if ((Oh&0x124) ==0) score = score+2;} 
+                else if ((Oh&0x124) !=0) score++;} 
+            if ((aBit&0x248) !=0) { 
+                if ((eX&0x248) !=0) {if ((Oh&0x248) ==0) score = score+2;} 
+                else if ((Oh&0x248) !=0) score++;} 
+            if ((aBit&0x222) !=0) { 
+                if ((eX&0x222) !=0) {if ((Oh&0x222) ==0) score = score+2;} 
+                else if ((Oh&0x222) !=0) score++;} 
+            if ((aBit&0xA8) !=0) { 
+                if ((eX&0xA8) !=0) {if ((Oh&0xA8) ==0) score = score+2;} 
+                else if ((Oh&0xA8) !=0) score++;} 
+            if (logit) System.out.println("best "+doing+" ="+score+"/"+best); 
+            score = score*4; 
+            if (score>best) { // best square.. 
+               chose = doing; 
+               best = score;} 
+            else if (score==0) if (best<2) { // all blank, so this is a good default.. 
+               chose = doing; 
+               best = 2;} 
+        } // end of for loop 
+        doing = chose; 
+        aBit = 1<<doing; 
+        Oh = Oh|aBit; 
+    } // end of double-play while 
+    if (Xwon) System.out.println("You won, oh well."); 
+    else if (Owon) System.out.println("I won, I won, I won!"); 
+      else if (both == 0x3FE) System.out.println("Cat's game."); 
+} // end of main 
